@@ -4,3 +4,4 @@ outputs/
 temp-uploads/
 *.log
 .DS_Store
+.vercel
