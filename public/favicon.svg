@@ -1,0 +1,9 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Renombrador PDF Studio">
+  <rect x="6" y="6" width="52" height="52" rx="14" fill="#67C44F"/>
+  <path d="M18 16H38L46 24V48C46 50.2091 44.2091 52 42 52H18C15.7909 52 14 50.2091 14 48V20C14 17.7909 15.7909 16 18 16Z" fill="white"/>
+  <path d="M38 16V24C38 25.1046 38.8954 26 40 26H46" fill="#D9EEF9"/>
+  <path d="M20 31H38" stroke="#5E8FBB" stroke-width="4" stroke-linecap="round"/>
+  <path d="M20 38H34" stroke="#214E57" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="42" cy="40" r="7" fill="#214E57"/>
+  <path d="M39.8 40L41.5 41.8L44.6 38.6" stroke="white" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

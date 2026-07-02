@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Renombrador Pro de PDFs</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="apple-touch-icon" href="favicon.svg" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="paper-canvas"></div>
+    <div class="paper-shadow"></div>
+
+    <main class="layout">
+      <header class="topbar card">
+        <div class="brand">
+          <span class="brand-mark">PD</span>
+          <div>
+            <p class="brand-kicker">Mesa documental</p>
+            <h2>Renombrador PDF Studio</h2>
+          </div>
+        </div>
+        <div class="top-metrics">
+          <span class="metric-pill">Vista previa precisa</span>
+          <span class="metric-pill">Salida local</span>
+          <span class="metric-pill">Carpetas por archivo</span>
+        </div>
+      </header>
+
+      <section class="hero card hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">Flujo de revisión</p>
+          <h1>Revisa, gira y renombra tus PDFs.</h1>
+          <p class="subtitle">
+            Carga los archivos, verifica la vista previa y exporta todo en carpetas ordenadas.
+          </p>
+        </div>
+
+        <aside class="hero-panel">
+          <div class="hero-panel-card">
+            <span class="hero-panel-label">Antes de exportar</span>
+            <strong>Mira el PDF y luego define el nombre.</strong>
+            <p>Vista previa clara y salida ordenada.</p>
+          </div>
+          <div class="hero-badges">
+            <span>Vista clara</span>
+            <span>Giro</span>
+            <span>Salida ordenada</span>
+          </div>
+        </aside>
+      </section>
+
+      <section class="workspace">
+        <article class="panel uploader card">
+          <div class="panel-head">
+            <div>
+              <p class="section-kicker">Paso 1</p>
+              <h2>Cargar y renombrar</h2>
+            </div>
+            <span id="fileCountBadge" class="count-badge">0 archivos</span>
+          </div>
+
+          <label id="dropzone" class="dropzone" for="pdfInput">
+            <input id="pdfInput" type="file" accept="application/pdf" multiple />
+            <span class="dropzone-icon">+</span>
+            <span class="dropzone-title">Arrastra o selecciona PDFs</span>
+            <span class="dropzone-help">Proceso local.</span>
+          </label>
+
+          <div class="file-list-wrap">
+            <div class="section-head">
+              <p class="section-kicker">Paso 2</p>
+              <h3>Definir nombres</h3>
+            </div>
+            <ul id="fileList" class="file-list"></ul>
+          </div>
+
+          <button id="processBtn" class="btn-primary" disabled>Generar carpetas</button>
+          <div id="progressWrap" class="progress-wrap hidden" aria-live="polite">
+            <div class="progress-track">
+              <div id="progressBar" class="progress-bar"></div>
+            </div>
+            <p id="progressLabel" class="progress-label">0%</p>
+          </div>
+          <p id="statusText" class="status"></p>
+        </article>
+
+        <article class="panel preview card">
+          <div class="preview-head">
+            <div>
+              <p class="section-kicker">Paso 3</p>
+              <h2>Previsualización</h2>
+              <p id="activeFileName" class="active-file">Sin documento seleccionado</p>
+            </div>
+            <span id="zoomIndicator" class="zoom-indicator">100%</span>
+          </div>
+          <p class="preview-tip">Revisa y ajusta el PDF antes de exportar.</p>
+          <div class="preview-toolbar">
+            <div class="toolbar-group">
+              <button id="prevPageBtn" type="button">Pagina anterior</button>
+              <span id="pageIndicator">- / -</span>
+              <button id="nextPageBtn" type="button">Pagina siguiente</button>
+            </div>
+            <div class="toolbar-group">
+              <button id="zoomOutBtn" type="button">-</button>
+              <button id="fitWidthBtn" type="button">Ajustar ancho</button>
+              <button id="zoomInBtn" type="button">+</button>
+            </div>
+            <div class="toolbar-group">
+              <button id="rotateLeftBtn" type="button">Girar izq.</button>
+              <button id="rotateRightBtn" type="button">Girar der.</button>
+            </div>
+          </div>
+          <div id="previewShell" class="preview-shell empty">
+            <p id="previewPlaceholder" class="preview-placeholder">Vista previa.</p>
+            <div id="previewCanvasWrap" class="preview-canvas-wrap">
+              <canvas id="previewCanvas"></canvas>
+            </div>
+          </div>
+          <p class="preview-foot">Usa zoom y giro si lo necesitas.</p>
+        </article>
+      </section>
+
+      <footer class="footer-note card">
+        <span>Revisión, renombrado y exportación en un solo flujo.</span>
+      </footer>
+    </main>
+
+    <template id="fileItemTemplate">
+      <li class="file-item">
+        <button class="file-preview-btn" type="button"></button>
+        <input class="name-input" type="text" />
+      </li>
+    </template>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
