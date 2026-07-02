@@ -97,6 +97,88 @@ function getBaseName(fileName) {
   return lastDot > 0 ? fileName.slice(0, lastDot) : fileName;
 }
 
+function sanitizeName(name) {
+  return String(name || "")
+    .replace(/[<>:"/\\|?*\x00-\x1F]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function ensurePdfExtension(name) {
+  return name.toLowerCase().endsWith(".pdf") ? name : `${name}.pdf`;
+}
+
+function sanitizeFolderName(name) {
+  return sanitizeName(name)
+    .replace(/[.]+$/g, "")
+    .trim() || "sin-nombre";
+}
+
+function getUniqueName(baseName, usedNames) {
+  let candidate = baseName;
+  let counter = 1;
+  while (usedNames.has(candidate.toLowerCase())) {
+    candidate = `${baseName} (${counter})`;
+    counter += 1;
+  }
+  usedNames.add(candidate.toLowerCase());
+  return candidate;
+}
+
+async function processClientSideBatch(filesWithNames) {
+  if (!window.JSZip) {
+    throw new Error("No se pudo cargar el generador ZIP.");
+  }
+
+  const zip = new window.JSZip();
+  const usedFolders = new Set();
+  const renamedFiles = [];
+
+  for (const [index, item] of filesWithNames.entries()) {
+    const cleanBase = sanitizeName(item.rename || "") || getBaseName(item.file.name);
+    const folderBase = sanitizeFolderName(cleanBase);
+    const uniqueFolder = getUniqueName(folderBase, usedFolders);
+    const finalFileName = ensurePdfExtension(cleanBase);
+
+    const fileBuffer = await item.file.arrayBuffer();
+    const folder = zip.folder(uniqueFolder);
+    folder.file(finalFileName, fileBuffer);
+
+    renamedFiles.push({
+      original: item.file.name,
+      renamed: finalFileName,
+      folder: uniqueFolder
+    });
+
+    const percent = Math.round(((index + 1) / filesWithNames.length) * 70);
+    setProgress(percent, `Preparando archivos... ${percent}%`);
+  }
+
+  const zipBlob = await zip.generateAsync(
+    { type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } },
+    (metadata) => {
+      const p = 70 + Math.round((metadata.percent / 100) * 30);
+      setProgress(p, `Comprimiendo lote... ${Math.min(p, 100)}%`);
+    }
+  );
+
+  const stamp = new Date().toISOString().replace(/[.:]/g, "-");
+  const zipName = `renombrados-${stamp}.zip`;
+  const objectUrl = URL.createObjectURL(zipBlob);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = zipName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(objectUrl);
+
+  return {
+    zipName,
+    renamedFiles
+  };
+}
+
 function resetPreview() {
   previewShell.classList.add("empty");
   previewPlaceholder.style.display = "grid";
@@ -353,38 +435,24 @@ processBtn.addEventListener("click", async () => {
     return;
   }
 
-  const formData = new FormData();
-  selectedFiles.forEach((item) => {
-    formData.append("pdfs", item.file);
-    formData.append("names", item.rename.trim() || getBaseName(item.file.name));
-  });
+  const filesWithNames = selectedFiles.map((item) => ({
+    file: item.file,
+    rename: item.rename.trim() || getBaseName(item.file.name)
+  }));
 
   processBtn.disabled = true;
   statusText.textContent = "Iniciando procesamiento...";
   showProgress();
-  setProgress(0, "Subiendo archivos... 0%");
+  setProgress(0, "Preparando lote...");
 
   try {
-    const response = await uploadWithProgress("/api/process", formData, (percent) => {
-      setProgress(percent, `Subiendo archivos... ${Math.round(percent)}%`);
-    });
-
-    setProgress(100, "Procesando lote...");
-    const result = response.body;
-
-    if (!response.ok) {
-      throw new Error(result.error || "No se pudo procesar.");
-    }
+    const result = await processClientSideBatch(filesWithNames);
 
     const lines = result.renamedFiles
       .map((f) => `${f.original} -> ${f.folder}/${f.renamed}`)
       .join(" | ");
 
-    if (result.deployment === "vercel") {
-      statusText.textContent = `Lote completado en Vercel. Carpeta temporal: ${result.outputBatchFolderName}. Detalle: ${lines}`;
-    } else {
-      statusText.textContent = `Ruta fija: ${result.outputRouteDir}. Lote: ${result.outputBatchFolderName}. El Explorador se abrira en esa ubicacion. Detalle: ${lines}`;
-    }
+    statusText.textContent = `Lote completado. Se descargó ${result.zipName} con carpetas por archivo. Detalle: ${lines}`;
 
     setProgress(100, "Completado 100%");
   } catch (error) {
