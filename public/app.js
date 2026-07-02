@@ -62,16 +62,22 @@ function uploadWithProgress(url, formData, onProgress) {
     });
 
     xhr.addEventListener("load", () => {
+      const rawText = xhr.responseText || "";
+      let payload = {};
+
       try {
-        const payload = JSON.parse(xhr.responseText || "{}");
-        resolve({
-          ok: xhr.status >= 200 && xhr.status < 300,
-          status: xhr.status,
-          body: payload
-        });
+        payload = rawText ? JSON.parse(rawText) : {};
       } catch (_error) {
-        reject(new Error("Respuesta inválida del servidor."));
+        payload = {
+          error: rawText.trim() || `Respuesta no JSON (HTTP ${xhr.status})`
+        };
       }
+
+      resolve({
+        ok: xhr.status >= 200 && xhr.status < 300,
+        status: xhr.status,
+        body: payload
+      });
     });
 
     xhr.addEventListener("error", () => {
