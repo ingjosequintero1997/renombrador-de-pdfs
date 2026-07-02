@@ -133,6 +133,7 @@ async function processClientSideBatch(filesWithNames) {
   const zip = new window.JSZip();
   const usedFolders = new Set();
   const renamedFiles = [];
+  const folderList = [];
 
   for (const [index, item] of filesWithNames.entries()) {
     const cleanBase = sanitizeName(item.rename || "") || getBaseName(item.file.name);
@@ -149,6 +150,7 @@ async function processClientSideBatch(filesWithNames) {
       renamed: finalFileName,
       folder: uniqueFolder
     });
+    folderList.push(uniqueFolder);
 
     const percent = Math.round(((index + 1) / filesWithNames.length) * 70);
     setProgress(percent, `Preparando archivos... ${percent}%`);
@@ -164,6 +166,7 @@ async function processClientSideBatch(filesWithNames) {
 
   const stamp = new Date().toISOString().replace(/[.:]/g, "-");
   const zipName = `renombrados-${stamp}.zip`;
+  const txtName = `carpetas-${stamp}.txt`;
   const objectUrl = URL.createObjectURL(zipBlob);
   const link = document.createElement("a");
   link.href = objectUrl;
@@ -173,8 +176,27 @@ async function processClientSideBatch(filesWithNames) {
   link.remove();
   URL.revokeObjectURL(objectUrl);
 
+  const txtLines = [
+    "Listado de carpetas generadas",
+    `Fecha: ${new Date().toLocaleString()}`,
+    `Total: ${folderList.length}`,
+    "",
+    ...folderList.map((name, idx) => `${idx + 1}. ${name}`)
+  ];
+
+  const txtBlob = new Blob([txtLines.join("\n")], { type: "text/plain;charset=utf-8" });
+  const txtUrl = URL.createObjectURL(txtBlob);
+  const txtLink = document.createElement("a");
+  txtLink.href = txtUrl;
+  txtLink.download = txtName;
+  document.body.appendChild(txtLink);
+  txtLink.click();
+  txtLink.remove();
+  URL.revokeObjectURL(txtUrl);
+
   return {
     zipName,
+    txtName,
     renamedFiles
   };
 }
@@ -452,7 +474,7 @@ processBtn.addEventListener("click", async () => {
       .map((f) => `${f.original} -> ${f.folder}/${f.renamed}`)
       .join(" | ");
 
-    statusText.textContent = `Lote completado. Se descargó ${result.zipName} con carpetas por archivo. Detalle: ${lines}`;
+    statusText.textContent = `Lote completado. Se descargaron ${result.zipName} y ${result.txtName}. Detalle: ${lines}`;
 
     setProgress(100, "Completado 100%");
   } catch (error) {
