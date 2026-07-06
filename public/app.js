@@ -361,7 +361,7 @@ async function renderPage(pageNumber) {
 
   const page = await activePdf.getPage(pageNumber);
   const viewport = page.getViewport({ scale: zoomScale, rotation: activeRotation });
-  const dpi = window.devicePixelRatio || 1;
+  const dpi = Math.max(window.devicePixelRatio || 1, 1.5);
 
   previewCanvas.width = Math.floor(viewport.width * dpi);
   previewCanvas.height = Math.floor(viewport.height * dpi);
@@ -372,6 +372,8 @@ async function renderPage(pageNumber) {
   previewTextLayer.innerHTML = "";
 
   const context = previewCanvas.getContext("2d");
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
   context.setTransform(dpi, 0, 0, dpi, 0, 0);
 
   await page.render({
@@ -407,7 +409,7 @@ async function calculateFitWidthScale() {
 
   const page = await activePdf.getPage(activePage);
   const baseViewport = page.getViewport({ scale: 1, rotation: activeRotation });
-  const availableWidth = Math.max(previewCanvasWrap.clientWidth - 40, 300);
+  const availableWidth = Math.max(previewCanvasWrap.clientWidth - 12, 320);
   const newScale = availableWidth / baseViewport.width;
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, newScale));
 }

@@ -86,7 +86,7 @@ h1 {
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(390px, 0.98fr) minmax(540px, 1.32fr);
+  grid-template-columns: minmax(360px, 0.9fr) minmax(700px, 1.5fr);
   gap: 14px;
   align-items: start;
 }
@@ -395,21 +395,21 @@ h1 {
 }
 
 .preview-shell {
-  min-height: 660px;
+  min-height: 780px;
   border: 1px solid #c8ddeb;
   border-radius: 10px;
-  background: #f1f7fb;
+  background: #eef3f7;
   position: relative;
   overflow: hidden;
 }
 
 .preview-canvas-wrap {
   width: 100%;
-  height: 660px;
+  height: 780px;
   overflow: auto;
   display: grid;
   place-items: start center;
-  padding: 20px;
+  padding: 8px;
 }
 
 .pdf-page-layer {
@@ -422,9 +422,9 @@ h1 {
   display: block;
   pointer-events: none;
   background: white;
-  border-radius: 8px;
-  border: 1px solid #d1e0ea;
-  box-shadow: 0 22px 52px #11212620;
+  border-radius: 4px;
+  border: 1px solid #c3d4df;
+  box-shadow: 0 10px 22px #1121261a;
 }
 
 .preview-text-layer {
@@ -462,13 +462,13 @@ h1 {
   place-items: center;
   color: #556b79;
   font-weight: 500;
-  background: #eef7fcdb;
+  background: #e8f0f6e8;
   z-index: 2;
 }
 
 .preview-foot {
   margin: 10px 0 0;
-  color: #60798a;
+  color: #526c7d;
   font-size: 0.85rem;
   line-height: 1.5;
 }
@@ -515,8 +515,8 @@ h1 {
 
   .preview-shell,
   .preview-canvas-wrap {
-    min-height: 500px;
-    height: 500px;
+    min-height: 620px;
+    height: 620px;
   }
 }
 
@@ -527,7 +527,7 @@ h1 {
 
   .preview-shell,
   .preview-canvas-wrap {
-    min-height: 420px;
-    height: 420px;
+    min-height: 500px;
+    height: 500px;
   }
 }
