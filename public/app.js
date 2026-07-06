@@ -125,14 +125,26 @@ function sanitizeFolderName(name) {
 
 function extractIdBasedName(candidateName) {
   const cleaned = sanitizeName(candidateName || "");
-  const match = cleaned.match(/^([A-Za-z]{2,15})\s+([A-Za-z0-9.-]{4,30})$/);
-  if (!match) {
+  if (!cleaned) {
     return null;
   }
 
-  const idType = match[1].toUpperCase();
-  const idNumber = match[2];
-  return `${idType} ${idNumber}`;
+  const patterns = [
+    /^([A-Za-z]{2,15})[-_\s]+([A-Za-z0-9.-]{4,30})$/,
+    /^([A-Za-z]{2,15})[-_\s]+([A-Za-z0-9.-]{4,30})[-_\s]+.+$/,
+    /^([A-Za-z]{2,15})\s*[:#-]?\s*([0-9][A-Za-z0-9.-]{3,30}).*$/
+  ];
+
+  for (const pattern of patterns) {
+    const match = cleaned.match(pattern);
+    if (match) {
+      const idType = String(match[1] || "").toUpperCase();
+      const idNumber = String(match[2] || "");
+      return `${idType}-${idNumber}`;
+    }
+  }
+
+  return null;
 }
 
 function extractIdFromText(rawText) {
@@ -183,10 +195,11 @@ async function processClientSideBatch(filesWithNames) {
 
   for (const [index, item] of filesWithNames.entries()) {
     const cleanBase = sanitizeName(item.rename || "") || getBaseName(item.file.name);
-    const folderBase = sanitizeFolderName(cleanBase);
-    const uniqueFolder = getUniqueName(folderBase, usedFolders);
     const idBasedName = extractIdBasedName(cleanBase);
-    const finalFileBase = idBasedName || cleanBase;
+    const mappedBase = idBasedName || cleanBase;
+    const folderBase = sanitizeFolderName(mappedBase);
+    const uniqueFolder = getUniqueName(folderBase, usedFolders);
+    const finalFileBase = mappedBase;
     const finalFileName = ensurePdfExtension(finalFileBase);
 
     const fileBuffer = await item.file.arrayBuffer();
