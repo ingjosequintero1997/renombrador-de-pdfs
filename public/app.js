@@ -217,12 +217,11 @@ function normalizeExtractedTextToName(rawText) {
   return sanitizeName(compact).slice(0, 140);
 }
 
-async function extractTextFromCurrentPage() {
-  if (!activePdf) {
+async function extractTextFromPage(page) {
+  if (!page) {
     return "";
   }
 
-  const page = await activePdf.getPage(activePage);
   const content = await page.getTextContent();
   const text = content.items
     .map((item) => (typeof item.str === "string" ? item.str : ""))
@@ -231,6 +230,15 @@ async function extractTextFromCurrentPage() {
     .trim();
 
   return text;
+}
+
+async function extractTextFromCurrentPage() {
+  if (!activePdf) {
+    return "";
+  }
+
+  const page = await activePdf.getPage(activePage);
+  return extractTextFromPage(page);
 }
 
 function resetPreview() {
@@ -284,6 +292,13 @@ async function renderPage(pageNumber) {
     canvasContext: context,
     viewport
   }).promise;
+
+  try {
+    const text = await extractTextFromPage(page);
+    extractedText.value = text || "Este PDF no contiene texto seleccionable (puede ser escaneado como imagen).";
+  } catch (_error) {
+    extractedText.value = "No se pudo extraer texto de esta pagina.";
+  }
 
   pageIndicator.textContent = `${activePage} / ${activePdf.numPages}`;
   zoomIndicator.textContent = `${Math.round(zoomScale * 100)}%`;
@@ -505,7 +520,12 @@ copyTextBtn.addEventListener("click", async () => {
     await navigator.clipboard.writeText(text);
     statusText.textContent = "Texto copiado. Puedes usarlo para renombrar.";
   } catch (_error) {
-    statusText.textContent = "No se pudo copiar automaticamente. Copialo manualmente.";
+    extractedText.focus();
+    extractedText.select();
+    const copied = document.execCommand("copy");
+    statusText.textContent = copied
+      ? "Texto copiado. Puedes usarlo para renombrar."
+      : "No se pudo copiar automaticamente. Usa Ctrl+C sobre el texto.";
   }
 });
 
