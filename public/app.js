@@ -140,6 +140,15 @@ function extractIdBasedName(candidateName) {
   return null;
 }
 
+function isSelectionInsidePreviewLayer(selection) {
+  if (!selection || selection.rangeCount === 0) {
+    return false;
+  }
+
+  const range = selection.getRangeAt(0);
+  return previewTextLayer.contains(range.commonAncestorContainer);
+}
+
 function getUniqueName(baseName, usedNames) {
   let candidate = baseName;
   let counter = 1;
@@ -472,6 +481,29 @@ rotateRightBtn.addEventListener("click", async () => {
   selectedFiles[selectedIndex].rotation = activeRotation;
   zoomScale = await calculateFitWidthScale();
   await renderPage(activePage);
+});
+
+document.addEventListener("copy", (event) => {
+  const selection = window.getSelection();
+  if (!selection || selection.isCollapsed || !isSelectionInsidePreviewLayer(selection)) {
+    return;
+  }
+
+  const selectedText = selection.toString().replace(/\s+/g, " ").trim();
+  if (!selectedText) {
+    return;
+  }
+
+  const idOnly = extractIdBasedName(selectedText);
+  const finalText = idOnly || selectedText;
+
+  if (event.clipboardData) {
+    event.preventDefault();
+    event.clipboardData.setData("text/plain", finalText);
+    statusText.textContent = idOnly
+      ? `Copiado: ${idOnly}`
+      : "Texto copiado desde la previsualizacion.";
+  }
 });
 
 window.addEventListener("resize", async () => {
