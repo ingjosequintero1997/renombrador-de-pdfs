@@ -567,10 +567,12 @@ h1 {
 .pdf-page-layer {
   position: relative;
   line-height: 1;
+  display: inline-block;
 }
 
 #previewCanvas {
   display: block;
+  pointer-events: none;
   background: white;
   border-radius: 8px;
   border: 1px solid #d1e0ea;
@@ -582,10 +584,12 @@ h1 {
   inset: 0;
   overflow: hidden;
   user-select: text;
+  -webkit-user-select: text;
   cursor: text;
   text-size-adjust: none;
   -webkit-text-size-adjust: none;
   forced-color-adjust: none;
+  z-index: 2;
 }
 
 .preview-text-layer span,

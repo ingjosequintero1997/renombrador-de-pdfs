@@ -525,12 +525,18 @@ document.addEventListener("copy", (event) => {
   const idOnly = extractIdBasedName(selectedText);
   const finalText = idOnly || selectedText;
 
-  if (event.clipboardData) {
+  if (!event.clipboardData) {
+    return;
+  }
+
+  try {
     event.preventDefault();
     event.clipboardData.setData("text/plain", finalText);
     statusText.textContent = idOnly
       ? `Copiado: ${idOnly}`
       : "Texto copiado desde la previsualizacion.";
+  } catch (_error) {
+    // Si falla el acceso al portapapeles del evento, se permite el copiado nativo.
   }
 });
 
