@@ -116,7 +116,8 @@ function sanitizeFolderName(name) {
     .trim() || "sin-nombre";
 }
 
-function extractIdBasedName(candidateName) {
+function extractIdBasedName(candidateName, options = {}) {
+  const fromStart = Boolean(options.fromStart);
   const cleaned = sanitizeName(candidateName || "");
   if (!cleaned) {
     return null;
@@ -141,11 +142,17 @@ function extractIdBasedName(candidateName) {
     .sort((a, b) => b.length - a.length)
     .join("|");
 
-  const patterns = [
-    new RegExp(`\\b(${typePattern})\\s*[-_.: ]*([0-9][0-9A-Z ._-]{3,40})`),
-    new RegExp(`\\b(${typePattern})([0-9]{4,40})\\b`),
-    /^([A-Z]{2,15})\s*[-_.: ]*([0-9][0-9A-Z ._-]{3,40})/
+  const strictPatterns = [
+    new RegExp(`^(${typePattern})[\\s._:-]+([0-9]{4,40})(?:[\\s._:-].*)?$`),
+    new RegExp(`^(${typePattern})([0-9]{4,40})(?:[\\s._:-].*)?$`)
   ];
+
+  const relaxedPatterns = [
+    new RegExp(`\\b(${typePattern})[\\s._:-]+([0-9]{4,40})\\b`),
+    new RegExp(`\\b(${typePattern})([0-9]{4,40})\\b`)
+  ];
+
+  const patterns = fromStart ? strictPatterns : [...strictPatterns, ...relaxedPatterns];
 
   for (const pattern of patterns) {
     const match = normalized.match(pattern);
@@ -156,13 +163,13 @@ function extractIdBasedName(candidateName) {
     const rawType = String(match[1] || "").trim();
     const rawNumber = String(match[2] || "").trim();
     const normalizedType = typeAliases[rawType] || rawType;
-    const normalizedNumber = rawNumber.replace(/[^0-9A-Z]/g, "");
+    const normalizedNumber = rawNumber.replace(/[^0-9]/g, "");
 
     if (normalizedType.length < 2 || normalizedNumber.length < 4) {
       continue;
     }
 
-    return `${normalizedType}-${normalizedNumber}`;
+    return `${normalizedType}_${normalizedNumber}`;
   }
 
   return null;
@@ -265,7 +272,7 @@ async function processClientSideBatch(filesWithNames) {
 
   for (const [index, item] of filesWithNames.entries()) {
     const cleanBase = sanitizeName(item.rename || "") || getBaseName(item.file.name);
-    const idBasedName = extractIdBasedName(cleanBase);
+    const idBasedName = extractIdBasedName(cleanBase, { fromStart: true });
     const mappedBase = idBasedName || cleanBase;
     const folderBase = sanitizeFolderName(mappedBase);
     const uniqueFolder = getUniqueName(folderBase, usedFolders);
