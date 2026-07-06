@@ -21,6 +21,10 @@ const zoomOutBtn = document.getElementById("zoomOutBtn");
 const fitWidthBtn = document.getElementById("fitWidthBtn");
 const rotateLeftBtn = document.getElementById("rotateLeftBtn");
 const rotateRightBtn = document.getElementById("rotateRightBtn");
+const extractTextBtn = document.getElementById("extractTextBtn");
+const copyTextBtn = document.getElementById("copyTextBtn");
+const useAsNameBtn = document.getElementById("useAsNameBtn");
+const extractedText = document.getElementById("extractedText");
 const pageIndicator = document.getElementById("pageIndicator");
 
 let selectedFiles = [];
@@ -114,6 +118,18 @@ function sanitizeFolderName(name) {
     .trim() || "sin-nombre";
 }
 
+function extractIdBasedName(candidateName) {
+  const cleaned = sanitizeName(candidateName || "");
+  const match = cleaned.match(/^([A-Za-z]{2,15})\s+([A-Za-z0-9.-]{4,30})$/);
+  if (!match) {
+    return null;
+  }
+
+  const idType = match[1].toUpperCase();
+  const idNumber = match[2];
+  return `${idType} ${idNumber}`;
+}
+
 function getUniqueName(baseName, usedNames) {
   let candidate = baseName;
   let counter = 1;
@@ -138,7 +154,9 @@ async function processClientSideBatch(filesWithNames) {
     const cleanBase = sanitizeName(item.rename || "") || getBaseName(item.file.name);
     const folderBase = sanitizeFolderName(cleanBase);
     const uniqueFolder = getUniqueName(folderBase, usedFolders);
-    const finalFileName = ensurePdfExtension(cleanBase);
+    const idBasedName = extractIdBasedName(cleanBase);
+    const finalFileBase = idBasedName || cleanBase;
+    const finalFileName = ensurePdfExtension(finalFileBase);
 
     const fileBuffer = await item.file.arrayBuffer();
     const folder = zip.folder(uniqueFolder);
@@ -179,6 +197,42 @@ async function processClientSideBatch(filesWithNames) {
   };
 }
 
+function getCurrentNameInput() {
+  if (selectedIndex < 0) {
+    return null;
+  }
+
+  return fileList.querySelector(`.file-item[data-index="${selectedIndex}"] .name-input`);
+}
+
+function normalizeExtractedTextToName(rawText) {
+  const compact = String(rawText || "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!compact) {
+    return "";
+  }
+
+  return sanitizeName(compact).slice(0, 140);
+}
+
+async function extractTextFromCurrentPage() {
+  if (!activePdf) {
+    return "";
+  }
+
+  const page = await activePdf.getPage(activePage);
+  const content = await page.getTextContent();
+  const text = content.items
+    .map((item) => (typeof item.str === "string" ? item.str : ""))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return text;
+}
+
 function resetPreview() {
   previewShell.classList.add("empty");
   previewPlaceholder.style.display = "grid";
@@ -192,6 +246,7 @@ function resetPreview() {
   activeFileName.textContent = "Sin documento seleccionado";
   zoomIndicator.textContent = "100%";
   pageIndicator.textContent = "- / -";
+  extractedText.value = "";
   updateControls();
   selectedIndex = -1;
 }
@@ -203,6 +258,9 @@ function updateControls() {
   zoomInBtn.disabled = !hasPdf || zoomScale >= MAX_ZOOM;
   zoomOutBtn.disabled = !hasPdf || zoomScale <= MIN_ZOOM;
   fitWidthBtn.disabled = !hasPdf;
+  extractTextBtn.disabled = !hasPdf;
+  copyTextBtn.disabled = !hasPdf;
+  useAsNameBtn.disabled = !hasPdf || selectedIndex < 0;
 }
 
 async function renderPage(pageNumber) {
@@ -302,6 +360,7 @@ function renderFileList() {
 
     nameInput.value = item.rename;
     nameInput.placeholder = "Nombre nuevo";
+    nameInput.dataset.index = String(index);
     nameInput.addEventListener("input", (e) => {
       selectedFiles[index].rename = e.target.value;
     });
@@ -420,6 +479,54 @@ rotateRightBtn.addEventListener("click", async () => {
   selectedFiles[selectedIndex].rotation = activeRotation;
   zoomScale = await calculateFitWidthScale();
   await renderPage(activePage);
+});
+
+extractTextBtn.addEventListener("click", async () => {
+  if (!activePdf) {
+    return;
+  }
+
+  try {
+    const text = await extractTextFromCurrentPage();
+    extractedText.value = text || "No se encontro texto en la pagina actual.";
+  } catch (_error) {
+    extractedText.value = "No se pudo extraer texto de esta pagina.";
+  }
+});
+
+copyTextBtn.addEventListener("click", async () => {
+  const text = extractedText.value.trim();
+  if (!text) {
+    statusText.textContent = "No hay texto extraido para copiar.";
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(text);
+    statusText.textContent = "Texto copiado. Puedes usarlo para renombrar.";
+  } catch (_error) {
+    statusText.textContent = "No se pudo copiar automaticamente. Copialo manualmente.";
+  }
+});
+
+useAsNameBtn.addEventListener("click", () => {
+  if (selectedIndex < 0) {
+    return;
+  }
+
+  const proposedName = normalizeExtractedTextToName(extractedText.value);
+  if (!proposedName) {
+    statusText.textContent = "No hay texto util para usar como nombre.";
+    return;
+  }
+
+  selectedFiles[selectedIndex].rename = proposedName;
+  const nameInput = getCurrentNameInput();
+  if (nameInput) {
+    nameInput.value = proposedName;
+  }
+
+  statusText.textContent = "Nombre actualizado desde la previsualizacion.";
 });
 
 window.addEventListener("resize", async () => {

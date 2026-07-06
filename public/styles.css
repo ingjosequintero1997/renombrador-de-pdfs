@@ -537,6 +537,25 @@ h1 {
   cursor: not-allowed;
 }
 
+.extracted-text {
+  width: 100%;
+  min-height: 84px;
+  max-height: 160px;
+  resize: vertical;
+  border: 1px solid #c6d8e5;
+  border-radius: 10px;
+  padding: 10px;
+  font: inherit;
+  background: #ffffff;
+  color: #2b4455;
+  margin-bottom: 10px;
+}
+
+.extracted-text:focus {
+  outline: 2px solid #84b8d847;
+  border-color: #84b8d8;
+}
+
 #pageIndicator {
   min-width: 66px;
   text-align: center;
