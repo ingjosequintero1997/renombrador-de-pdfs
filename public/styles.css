@@ -400,6 +400,20 @@ h1 {
   border-color: #84b8d8;
 }
 
+.folder-preview {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #4b6373;
+  background: #eef6fb;
+  border: 1px solid #d0e0eb;
+  border-radius: 8px;
+  padding: 7px 9px;
+}
+
+.folder-preview strong {
+  color: #27475d;
+}
+
 .btn-primary {
   margin-top: 16px;
   border: 0;

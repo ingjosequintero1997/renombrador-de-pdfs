@@ -318,6 +318,13 @@ async function processClientSideBatch(filesWithNames) {
   };
 }
 
+function getMappedFolderName(renameValue, originalFileName) {
+  const cleanBase = sanitizeName(renameValue || "") || getBaseName(originalFileName);
+  const idBasedName = extractIdBasedName(cleanBase, { fromStart: true });
+  const mappedBase = idBasedName || cleanBase;
+  return sanitizeFolderName(mappedBase);
+}
+
 function resetPreview() {
   previewShell.classList.add("empty");
   previewPlaceholder.style.display = "grid";
@@ -457,6 +464,7 @@ function renderFileList() {
     const row = fragment.querySelector(".file-item");
     const previewBtn = fragment.querySelector(".file-preview-btn");
     const nameInput = fragment.querySelector(".name-input");
+    const folderPreview = fragment.querySelector(".folder-preview");
 
     previewBtn.textContent = item.file.name;
     previewBtn.addEventListener("click", () => showPreview(index));
@@ -464,9 +472,15 @@ function renderFileList() {
     nameInput.value = item.rename;
     nameInput.placeholder = "Nombre nuevo";
     nameInput.dataset.index = String(index);
+    const updateFolderPreview = () => {
+      const folderName = getMappedFolderName(selectedFiles[index].rename, selectedFiles[index].file.name);
+      folderPreview.innerHTML = `Carpeta resultante: <strong>${folderName}</strong>`;
+    };
     nameInput.addEventListener("input", (e) => {
       selectedFiles[index].rename = e.target.value;
+      updateFolderPreview();
     });
+    updateFolderPreview();
 
     row.dataset.index = String(index);
     fileList.appendChild(fragment);
