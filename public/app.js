@@ -25,6 +25,9 @@ const extractTextBtn = document.getElementById("extractTextBtn");
 const copyTextBtn = document.getElementById("copyTextBtn");
 const useAsNameBtn = document.getElementById("useAsNameBtn");
 const extractedText = document.getElementById("extractedText");
+const idOnlyText = document.getElementById("idOnlyText");
+const copyIdBtn = document.getElementById("copyIdBtn");
+const useIdAsNameBtn = document.getElementById("useIdAsNameBtn");
 const pageIndicator = document.getElementById("pageIndicator");
 
 let selectedFiles = [];
@@ -128,6 +131,32 @@ function extractIdBasedName(candidateName) {
   const idType = match[1].toUpperCase();
   const idNumber = match[2];
   return `${idType} ${idNumber}`;
+}
+
+function extractIdFromText(rawText) {
+  const text = String(rawText || "").replace(/\s+/g, " ").trim();
+  if (!text) {
+    return "";
+  }
+
+  const patterns = [
+    /\b(CC|CE|NIT|TI|RC|PASAPORTE|PA|DNI|ID)\s*[:#-]?\s*([A-Z0-9][A-Z0-9.-]{3,30})\b/i,
+    /\b(CEDULA|CEDULA\s+DE\s+CIUDADANIA|CARNET|DOCUMENTO|IDENTIFICACION)\s*[:#-]?\s*([A-Z0-9][A-Z0-9.-]{4,30})\b/i,
+    /\b([A-Z]{2,15})\s+([0-9][0-9.-]{4,30})\b/i
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match) {
+      const idType = String(match[1] || "").toUpperCase().replace(/\s+/g, " ").trim();
+      const idNumber = String(match[2] || "").trim();
+      if (idType && idNumber) {
+        return `${idType} ${idNumber}`;
+      }
+    }
+  }
+
+  return "";
 }
 
 function getUniqueName(baseName, usedNames) {
@@ -255,6 +284,7 @@ function resetPreview() {
   zoomIndicator.textContent = "100%";
   pageIndicator.textContent = "- / -";
   extractedText.value = "";
+  idOnlyText.value = "";
   updateControls();
   selectedIndex = -1;
 }
@@ -268,7 +298,9 @@ function updateControls() {
   fitWidthBtn.disabled = !hasPdf;
   extractTextBtn.disabled = !hasPdf;
   copyTextBtn.disabled = !hasPdf;
+  copyIdBtn.disabled = !hasPdf;
   useAsNameBtn.disabled = !hasPdf || selectedIndex < 0;
+  useIdAsNameBtn.disabled = !hasPdf || selectedIndex < 0;
 }
 
 async function renderPage(pageNumber) {
@@ -296,8 +328,10 @@ async function renderPage(pageNumber) {
   try {
     const text = await extractTextFromPage(page);
     extractedText.value = text || "Este PDF no contiene texto seleccionable (puede ser escaneado como imagen).";
+    idOnlyText.value = extractIdFromText(text);
   } catch (_error) {
     extractedText.value = "No se pudo extraer texto de esta pagina.";
+    idOnlyText.value = "";
   }
 
   pageIndicator.textContent = `${activePage} / ${activePdf.numPages}`;
@@ -504,8 +538,10 @@ extractTextBtn.addEventListener("click", async () => {
   try {
     const text = await extractTextFromCurrentPage();
     extractedText.value = text || "No se encontro texto en la pagina actual.";
+    idOnlyText.value = extractIdFromText(text);
   } catch (_error) {
     extractedText.value = "No se pudo extraer texto de esta pagina.";
+    idOnlyText.value = "";
   }
 });
 
@@ -547,6 +583,52 @@ useAsNameBtn.addEventListener("click", () => {
   }
 
   statusText.textContent = "Nombre actualizado desde la previsualizacion.";
+});
+
+copyIdBtn.addEventListener("click", async () => {
+  const value = idOnlyText.value.trim();
+  if (!value) {
+    statusText.textContent = "No se detecto tipo y numero en esta pagina.";
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(value);
+    statusText.textContent = "Tipo y numero copiados.";
+  } catch (_error) {
+    idOnlyText.focus();
+    idOnlyText.select();
+    const copied = document.execCommand("copy");
+    statusText.textContent = copied
+      ? "Tipo y numero copiados."
+      : "No se pudo copiar automaticamente. Usa Ctrl+C sobre el campo.";
+  }
+});
+
+useIdAsNameBtn.addEventListener("click", () => {
+  if (selectedIndex < 0) {
+    return;
+  }
+
+  const value = idOnlyText.value.trim();
+  if (!value) {
+    statusText.textContent = "No se detecto tipo y numero para usar como nombre.";
+    return;
+  }
+
+  const proposedName = normalizeExtractedTextToName(value);
+  if (!proposedName) {
+    statusText.textContent = "No hay texto util para usar como nombre.";
+    return;
+  }
+
+  selectedFiles[selectedIndex].rename = proposedName;
+  const nameInput = getCurrentNameInput();
+  if (nameInput) {
+    nameInput.value = proposedName;
+  }
+
+  statusText.textContent = "Nombre actualizado con tipo y numero.";
 });
 
 window.addEventListener("resize", async () => {
