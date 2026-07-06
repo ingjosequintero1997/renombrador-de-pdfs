@@ -122,19 +122,47 @@ function extractIdBasedName(candidateName) {
     return null;
   }
 
+  const normalized = cleaned
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase();
+
+  const knownTypes = ["CC", "CE", "TI", "NIT", "RC", "PA", "DNI", "ID", "PPT", "PEP", "PASAPORTE", "CEDULA", "CEDULA DE CIUDADANIA", "TARJETA DE IDENTIDAD"];
+
+  const typeAliases = {
+    "CEDULA": "CC",
+    "CEDULA DE CIUDADANIA": "CC",
+    "TARJETA DE IDENTIDAD": "TI",
+    "PASAPORTE": "PA"
+  };
+
+  const typePattern = knownTypes
+    .map((value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .sort((a, b) => b.length - a.length)
+    .join("|");
+
   const patterns = [
-    /^([A-Za-z]{2,15})[-_\s]+([A-Za-z0-9.-]{4,30})$/,
-    /^([A-Za-z]{2,15})[-_\s]+([A-Za-z0-9.-]{4,30})[-_\s]+.+$/,
-    /^([A-Za-z]{2,15})\s*[:#-]?\s*([0-9][A-Za-z0-9.-]{3,30}).*$/
+    new RegExp(`\\b(${typePattern})\\s*[-_.: ]*([0-9][0-9A-Z ._-]{3,40})`),
+    new RegExp(`\\b(${typePattern})([0-9]{4,40})\\b`),
+    /^([A-Z]{2,15})\s*[-_.: ]*([0-9][0-9A-Z ._-]{3,40})/
   ];
 
   for (const pattern of patterns) {
-    const match = cleaned.match(pattern);
-    if (match) {
-      const idType = String(match[1] || "").toUpperCase();
-      const idNumber = String(match[2] || "");
-      return `${idType}-${idNumber}`;
+    const match = normalized.match(pattern);
+    if (!match) {
+      continue;
     }
+
+    const rawType = String(match[1] || "").trim();
+    const rawNumber = String(match[2] || "").trim();
+    const normalizedType = typeAliases[rawType] || rawType;
+    const normalizedNumber = rawNumber.replace(/[^0-9A-Z]/g, "");
+
+    if (normalizedType.length < 2 || normalizedNumber.length < 4) {
+      continue;
+    }
+
+    return `${normalizedType}-${normalizedNumber}`;
   }
 
   return null;
