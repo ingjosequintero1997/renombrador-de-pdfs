@@ -199,7 +199,7 @@ async function processClientSideBatch(filesWithNames) {
     const mappedBase = idBasedName || cleanBase;
     const folderBase = sanitizeFolderName(mappedBase);
     const uniqueFolder = getUniqueName(folderBase, usedFolders);
-    const finalFileBase = mappedBase;
+    const finalFileBase = cleanBase;
     const finalFileName = ensurePdfExtension(finalFileBase);
 
     const fileBuffer = await item.file.arrayBuffer();

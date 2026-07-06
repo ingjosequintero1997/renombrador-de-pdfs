@@ -608,10 +608,6 @@ h1 {
   border: 1px solid #c8ddeb;
   border-radius: 14px;
   background:
-
-  .id-copy-row {
-    grid-template-columns: 1fr;
-  }
     linear-gradient(180deg, #eaf4fa 0%, #dfeef8 100%),
     radial-gradient(circle at 50% 0%, #ffffff88 0%, transparent 40%);
   position: relative;
@@ -697,6 +693,16 @@ h1 {
   max-width: 760px;
 }
 
+.footer-credit {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #cdddeb;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #4e6777;
+}
+
 @keyframes reveal {
   to {
     transform: translateY(0);
@@ -739,5 +745,9 @@ h1 {
   .preview-canvas-wrap {
     min-height: 420px;
     height: 420px;
+  }
+
+  .id-copy-row {
+    grid-template-columns: 1fr;
   }
 }
