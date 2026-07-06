@@ -177,6 +177,72 @@ function isSelectionInsidePreviewLayer(selection) {
   return previewTextLayer.contains(range.commonAncestorContainer);
 }
 
+function getSpanFromEventTarget(target) {
+  if (!target) {
+    return null;
+  }
+
+  if (target.nodeType === Node.ELEMENT_NODE) {
+    return target.closest("span");
+  }
+
+  return target.parentElement?.closest("span") || null;
+}
+
+function getLineTextFromSpan(referenceSpan) {
+  if (!referenceSpan || !previewTextLayer.contains(referenceSpan)) {
+    return "";
+  }
+
+  const referenceRect = referenceSpan.getBoundingClientRect();
+  const referenceY = referenceRect.top + referenceRect.height / 2;
+  const tolerance = Math.max(8, referenceRect.height * 0.9);
+
+  const spans = Array.from(previewTextLayer.querySelectorAll("span"));
+  const sameLine = spans
+    .filter((span) => {
+      const text = span.textContent?.trim();
+      if (!text) {
+        return false;
+      }
+
+      const rect = span.getBoundingClientRect();
+      const spanY = rect.top + rect.height / 2;
+      return Math.abs(spanY - referenceY) <= tolerance;
+    })
+    .sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left)
+    .map((span) => span.textContent || "")
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return sameLine;
+}
+
+async function writeToClipboard(text) {
+  const value = String(text || "").trim();
+  if (!value) {
+    return false;
+  }
+
+  try {
+    await navigator.clipboard.writeText(value);
+    return true;
+  } catch (_error) {
+    const temp = document.createElement("textarea");
+    temp.value = value;
+    temp.setAttribute("readonly", "readonly");
+    temp.style.position = "fixed";
+    temp.style.opacity = "0";
+    document.body.appendChild(temp);
+    temp.focus();
+    temp.select();
+    const copied = document.execCommand("copy");
+    temp.remove();
+    return copied;
+  }
+}
+
 function getUniqueName(baseName, usedNames) {
   let candidate = baseName;
   let counter = 1;
@@ -538,6 +604,29 @@ document.addEventListener("copy", (event) => {
   } catch (_error) {
     // Si falla el acceso al portapapeles del evento, se permite el copiado nativo.
   }
+});
+
+previewTextLayer.addEventListener("dblclick", async (event) => {
+  const clickedSpan = getSpanFromEventTarget(event.target);
+  if (!clickedSpan) {
+    return;
+  }
+
+  const lineText = getLineTextFromSpan(clickedSpan);
+  if (!lineText) {
+    return;
+  }
+
+  const idOnly = extractIdBasedName(lineText);
+  if (!idOnly) {
+    statusText.textContent = "No se detecto tipo y numero en esta linea.";
+    return;
+  }
+
+  const copied = await writeToClipboard(idOnly);
+  statusText.textContent = copied
+    ? `Copiado por doble clic: ${idOnly}`
+    : "No se pudo copiar automaticamente con doble clic.";
 });
 
 window.addEventListener("resize", async () => {
