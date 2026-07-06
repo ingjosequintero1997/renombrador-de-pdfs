@@ -627,11 +627,38 @@ h1 {
   padding: 20px;
 }
 
+.pdf-page-layer {
+  position: relative;
+  line-height: 1;
+}
+
 #previewCanvas {
+  display: block;
   background: white;
   border-radius: 8px;
   border: 1px solid #d1e0ea;
   box-shadow: 0 22px 52px #11212620;
+}
+
+.preview-text-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  user-select: text;
+  cursor: text;
+}
+
+.preview-text-layer span,
+.preview-text-layer br {
+  color: transparent;
+  position: absolute;
+  transform-origin: 0% 0%;
+  white-space: pre;
+  cursor: text;
+}
+
+.preview-text-layer ::selection {
+  background: #7cb7ff66;
 }
 
 .preview-placeholder {

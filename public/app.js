@@ -4,6 +4,8 @@ const fileList = document.getElementById("fileList");
 const previewShell = document.getElementById("previewShell");
 const previewCanvas = document.getElementById("previewCanvas");
 const previewCanvasWrap = document.getElementById("previewCanvasWrap");
+const pdfPageLayer = document.getElementById("pdfPageLayer");
+const previewTextLayer = document.getElementById("previewTextLayer");
 const previewPlaceholder = document.getElementById("previewPlaceholder");
 const fileCountBadge = document.getElementById("fileCountBadge");
 const activeFileName = document.getElementById("activeFileName");
@@ -276,6 +278,9 @@ function resetPreview() {
   previewPlaceholder.textContent = "Tu vista previa aparecera en esta area.";
   previewCanvas.width = 0;
   previewCanvas.height = 0;
+  pdfPageLayer.style.width = "0px";
+  pdfPageLayer.style.height = "0px";
+  previewTextLayer.innerHTML = "";
   activePdf = null;
   activePage = 1;
   zoomScale = 1;
@@ -316,6 +321,9 @@ async function renderPage(pageNumber) {
   previewCanvas.height = Math.floor(viewport.height * dpi);
   previewCanvas.style.width = `${Math.floor(viewport.width)}px`;
   previewCanvas.style.height = `${Math.floor(viewport.height)}px`;
+  pdfPageLayer.style.width = `${Math.floor(viewport.width)}px`;
+  pdfPageLayer.style.height = `${Math.floor(viewport.height)}px`;
+  previewTextLayer.innerHTML = "";
 
   const context = previewCanvas.getContext("2d");
   context.setTransform(dpi, 0, 0, dpi, 0, 0);
@@ -324,6 +332,22 @@ async function renderPage(pageNumber) {
     canvasContext: context,
     viewport
   }).promise;
+
+  try {
+    const textContent = await page.getTextContent();
+    const renderTask = window.pdfjsLib.renderTextLayer({
+      textContentSource: textContent,
+      container: previewTextLayer,
+      viewport,
+      textDivs: [],
+      enhanceTextSelection: true
+    });
+    if (renderTask?.promise) {
+      await renderTask.promise;
+    }
+  } catch (_error) {
+    previewTextLayer.innerHTML = "";
+  }
 
   try {
     const text = await extractTextFromPage(page);
