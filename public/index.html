@@ -95,21 +95,21 @@
       <section class="cleanup-module card">
         <div class="panel-head">
           <div>
-            <p class="section-kicker">Módulo extra</p>
-            <h2>Limpiar carpetas con guion bajo</h2>
+            <p class="section-kicker">Herramienta complementaria</p>
+            <h2>Limpiar carpetas ya renombradas</h2>
           </div>
-          <span id="cleanupBadge" class="count-badge">Sin archivo</span>
+          <span id="cleanupBadge" class="count-badge">Sin carpeta</span>
         </div>
-        <p class="preview-tip">Sube un ZIP con carpetas ya renombradas y revisa cómo se convierten los nombres antes de descargar una copia limpia.</p>
+        <p class="preview-tip">Selecciona una carpeta principal y la herramienta revisará sus subcarpetas para convertir nombres tipo <strong>CC_123</strong> en <strong>CC 123</strong>.</p>
 
-        <label class="cleanup-upload" for="cleanupZipInput">
-          <input id="cleanupZipInput" type="file" accept=".zip,application/zip" />
-          <span>Seleccionar ZIP</span>
+        <label class="cleanup-upload" for="cleanupFolderInput">
+          <input id="cleanupFolderInput" type="file" webkitdirectory directory multiple />
+          <span>Seleccionar carpeta</span>
         </label>
 
         <div class="cleanup-actions">
-          <button id="cleanupScanBtn" class="btn-secondary" type="button" disabled>Previsualizar cambios</button>
-          <button id="cleanupApplyBtn" class="btn-primary" type="button" disabled>Descargar ZIP limpio</button>
+          <button id="cleanupScanBtn" class="btn-secondary" type="button" disabled>Previsualizar</button>
+          <button id="cleanupApplyBtn" class="btn-primary" type="button" disabled>Aplicar cambios</button>
         </div>
 
         <div id="cleanupStats" class="cleanup-stats"></div>
@@ -118,8 +118,8 @@
           <table class="cleanup-table">
             <thead>
               <tr>
-                <th>Ruta original</th>
-                <th>Ruta nueva</th>
+                <th>Carpeta actual</th>
+                <th>Carpeta nueva</th>
                 <th>Estado</th>
               </tr>
             </thead>

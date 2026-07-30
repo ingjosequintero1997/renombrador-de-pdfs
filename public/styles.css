@@ -395,8 +395,9 @@ h1 {
 }
 
 .cleanup-module {
-  margin-top: 18px;
+  margin-top: 6px;
   padding: 16px;
+  border-left: 4px solid #7fc36d;
 }
 
 .cleanup-upload {
@@ -405,12 +406,16 @@ h1 {
   align-items: center;
   justify-content: center;
   padding: 12px 14px;
-  border: 1px dashed #8fb5cb;
+  border: 1px solid #d8e9f2;
   border-radius: 12px;
-  background: #f6fbff;
+  background: linear-gradient(180deg, #f8fcff, #f0f7fb);
   color: #204e68;
   font-weight: 700;
   cursor: pointer;
+}
+
+.cleanup-upload:hover {
+  border-color: #86b8d7;
 }
 
 .cleanup-upload input {

@@ -24,7 +24,7 @@ const fitWidthBtn = document.getElementById("fitWidthBtn");
 const rotateLeftBtn = document.getElementById("rotateLeftBtn");
 const rotateRightBtn = document.getElementById("rotateRightBtn");
 const pageIndicator = document.getElementById("pageIndicator");
-const cleanupZipInput = document.getElementById("cleanupZipInput");
+const cleanupFolderInput = document.getElementById("cleanupFolderInput");
 const cleanupScanBtn = document.getElementById("cleanupScanBtn");
 const cleanupApplyBtn = document.getElementById("cleanupApplyBtn");
 const cleanupPreviewTable = document.getElementById("cleanupPreviewTable");
@@ -352,25 +352,26 @@ function resetPreview() {
   selectedIndex = -1;
 }
 
-function parseZipEntries(file) {
-  return new Promise((resolve, reject) => {
-    const zip = new window.JSZip();
-    zip.loadAsync(file)
-      .then((loadedZip) => {
-        const folders = [];
-        Object.entries(loadedZip.files).forEach(([path, entry]) => {
-          if (!entry.dir && path.includes("/")) {
-            const parts = path.split("/");
-            const folderPath = parts.slice(0, -1).join("/");
-            if (folderPath && !folders.includes(folderPath)) {
-              folders.push(folderPath);
-            }
-          }
-        });
-        resolve(folders);
-      })
-      .catch(reject);
+function collectSubfolderNames(folderEntries) {
+  const entries = Array.from(folderEntries || []).filter((entry) => entry.webkitRelativePath);
+  const folders = [];
+
+  entries.forEach((entry) => {
+    const relativePath = entry.webkitRelativePath.replace(/\\/g, "/");
+    const parts = relativePath.split("/").filter(Boolean);
+    if (parts.length <= 1) {
+      return;
+    }
+
+    const subfolder = parts[0];
+    if (!subfolder || folders.includes(subfolder)) {
+      return;
+    }
+
+    folders.push(subfolder);
   });
+
+  return folders;
 }
 
 function sanitizeCleanupName(name) {
@@ -766,30 +767,29 @@ processBtn.addEventListener("click", async () => {
   }
 });
 
-cleanupZipInput.addEventListener("change", async (event) => {
-  const [file] = event.target.files || [];
-  if (!file) {
+cleanupFolderInput.addEventListener("change", async (event) => {
+  const entries = Array.from(event.target.files || []);
+  if (entries.length === 0) {
     return;
   }
 
-  cleanupBadge.textContent = file.name;
-  cleanupStatusText.textContent = "Analizando ZIP...";
+  cleanupBadge.textContent = entries[0].webkitRelativePath?.split("/")[0] || "Carpeta seleccionada";
+  cleanupStatusText.textContent = "Analizando subcarpetas...";
   cleanupScanBtn.disabled = true;
   cleanupApplyBtn.disabled = true;
 
   try {
-    const folderPaths = await parseZipEntries(file);
-    const items = folderPaths.map((path) => {
-      const baseName = path.split("/").pop();
-      const newName = sanitizeCleanupName(baseName);
-      const status = newName === baseName ? "Sin cambios" : "Pendiente";
-      return { original: path, newName, status };
-    });
+    const folders = collectSubfolderNames(entries);
+    const items = folders.map((folderName) => ({
+      original: folderName,
+      newName: sanitizeCleanupName(folderName),
+      status: sanitizeCleanupName(folderName) === folderName ? "Sin cambios" : "Pendiente"
+    }));
 
     renderCleanupPreview(items);
-    cleanupStatusText.textContent = `Se encontraron ${items.length} rutas para revisar.`;
+    cleanupStatusText.textContent = `Se encontraron ${items.length} subcarpetas para revisar.`;
   } catch (error) {
-    cleanupStatusText.textContent = error.message || "No se pudo analizar el ZIP.";
+    cleanupStatusText.textContent = error.message || "No se pudo analizar la carpeta.";
   } finally {
     cleanupScanBtn.disabled = false;
     cleanupApplyBtn.disabled = false;
@@ -797,8 +797,8 @@ cleanupZipInput.addEventListener("change", async (event) => {
 });
 
 cleanupScanBtn.addEventListener("click", async () => {
-  const [file] = cleanupZipInput.files || [];
-  if (!file) {
+  const entries = Array.from(cleanupFolderInput.files || []);
+  if (entries.length === 0) {
     return;
   }
 
@@ -807,13 +807,12 @@ cleanupScanBtn.addEventListener("click", async () => {
   cleanupApplyBtn.disabled = true;
 
   try {
-    const folderPaths = await parseZipEntries(file);
-    const items = folderPaths.map((path) => {
-      const baseName = path.split("/").pop();
-      const newName = sanitizeCleanupName(baseName);
-      const status = newName === baseName ? "Sin cambios" : "Pendiente";
-      return { original: path, newName, status };
-    });
+    const folders = collectSubfolderNames(entries);
+    const items = folders.map((folderName) => ({
+      original: folderName,
+      newName: sanitizeCleanupName(folderName),
+      status: sanitizeCleanupName(folderName) === folderName ? "Sin cambios" : "Pendiente"
+    }));
 
     renderCleanupPreview(items);
     cleanupStatusText.textContent = `Vista previa lista con ${items.length} cambios posibles.`;
@@ -826,46 +825,41 @@ cleanupScanBtn.addEventListener("click", async () => {
 });
 
 cleanupApplyBtn.addEventListener("click", async () => {
-  const [file] = cleanupZipInput.files || [];
-  if (!file) {
+  const entries = Array.from(cleanupFolderInput.files || []);
+  if (entries.length === 0) {
     return;
   }
 
-  cleanupStatusText.textContent = "Generando ZIP limpio...";
+  cleanupStatusText.textContent = "Aplicando limpieza...";
   cleanupScanBtn.disabled = true;
   cleanupApplyBtn.disabled = true;
 
   try {
-    const sourceZip = new window.JSZip();
-    await sourceZip.loadAsync(file);
-    const outputZip = new window.JSZip();
+    const rootName = entries[0].webkitRelativePath?.split("/")[0] || "carpeta";
+    const output = new window.JSZip();
 
-    const filesToProcess = Object.entries(sourceZip.files).filter(([, entry]) => !entry.dir);
+    entries.forEach((entry) => {
+      const relativePath = entry.webkitRelativePath.replace(/\\/g, "/");
+      const parts = relativePath.split("/").filter(Boolean);
+      if (parts.length <= 1) {
+        return;
+      }
 
-    for (const [path, entry] of filesToProcess) {
-      const parts = path.split("/");
-      const fileName = parts.pop();
-      const folder = parts.join("/");
-      const cleanedFolder = folder
-        .split("/")
-        .filter(Boolean)
-        .map((segment) => sanitizeCleanupName(segment))
-        .join("/");
-      const outputPath = cleanedFolder ? `${cleanedFolder}/${fileName}` : fileName;
-      const content = await entry.async("uint8array");
-      outputZip.file(outputPath, content);
-    }
+      const cleanedParts = parts.map((part, index) => (index === 0 ? part : sanitizeCleanupName(part)));
+      const outputPath = `${rootName}/${cleanedParts.slice(1).join("/")}`;
+      output.file(outputPath, entry);
+    });
 
-    const blob = await outputZip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } });
+    const blob = await output.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `limpio-${file.name}`;
+    link.download = `limpieza-${rootName}.zip`;
     document.body.appendChild(link);
     link.click();
     link.remove();
-    cleanupStatusText.textContent = "ZIP limpio descargado.";
+    cleanupStatusText.textContent = "Limpieza lista. Se descargó el ZIP resultante.";
   } catch (error) {
-    cleanupStatusText.textContent = error.message || "No se pudo crear el ZIP limpio.";
+    cleanupStatusText.textContent = error.message || "No se pudo crear la copia limpia.";
   } finally {
     cleanupScanBtn.disabled = false;
     cleanupApplyBtn.disabled = false;
