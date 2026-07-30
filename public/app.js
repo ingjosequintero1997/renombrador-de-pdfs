@@ -169,7 +169,7 @@ function extractIdBasedName(candidateName, options = {}) {
       continue;
     }
 
-    return `${normalizedType}_${normalizedNumber}`;
+    return `${normalizedType} ${normalizedNumber}`;
   }
 
   return null;
