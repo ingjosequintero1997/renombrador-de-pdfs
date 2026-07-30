@@ -394,6 +394,111 @@ h1 {
   font-weight: 600;
 }
 
+.cleanup-module {
+  margin-top: 18px;
+  padding: 16px;
+}
+
+.cleanup-upload {
+  margin-top: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 14px;
+  border: 1px dashed #8fb5cb;
+  border-radius: 12px;
+  background: #f6fbff;
+  color: #204e68;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cleanup-upload input {
+  display: none;
+}
+
+.cleanup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.btn-secondary {
+  border: 1px solid #c7dce7;
+  border-radius: 12px;
+  padding: 11px 13px;
+  font: inherit;
+  font-weight: 700;
+  color: #2b4f63;
+  background: #f2f8fc;
+  cursor: pointer;
+}
+
+.cleanup-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.cleanup-stat-card {
+  padding: 10px;
+  border: 1px solid #dce9f1;
+  border-radius: 10px;
+  background: #fbfdff;
+}
+
+.cleanup-stat-card strong {
+  display: block;
+  font-size: 1.05rem;
+  color: #163c4c;
+}
+
+.cleanup-table-wrap {
+  margin-top: 12px;
+  overflow: auto;
+  border: 1px solid #dce9f1;
+  border-radius: 10px;
+}
+
+.cleanup-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 520px;
+}
+
+.cleanup-table th,
+.cleanup-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5eef3;
+  text-align: left;
+  font-size: 0.92rem;
+}
+
+.cleanup-table th {
+  background: #f4f9fc;
+  color: #43657a;
+}
+
+.cleanup-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.cleanup-table .status-pending {
+  color: #5a6f29;
+  font-weight: 700;
+}
+
+.cleanup-table .status-conflict {
+  color: #b44d1b;
+  font-weight: 700;
+}
+
+.cleanup-table .status-unchanged {
+  color: #4d6470;
+}
+
 .preview-shell {
   min-height: 780px;
   border: 1px solid #c8ddeb;

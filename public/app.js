@@ -24,6 +24,13 @@ const fitWidthBtn = document.getElementById("fitWidthBtn");
 const rotateLeftBtn = document.getElementById("rotateLeftBtn");
 const rotateRightBtn = document.getElementById("rotateRightBtn");
 const pageIndicator = document.getElementById("pageIndicator");
+const cleanupZipInput = document.getElementById("cleanupZipInput");
+const cleanupScanBtn = document.getElementById("cleanupScanBtn");
+const cleanupApplyBtn = document.getElementById("cleanupApplyBtn");
+const cleanupPreviewTable = document.getElementById("cleanupPreviewTable");
+const cleanupStats = document.getElementById("cleanupStats");
+const cleanupStatusText = document.getElementById("cleanupStatusText");
+const cleanupBadge = document.getElementById("cleanupBadge");
 
 let selectedFiles = [];
 let selectedIndex = -1;
@@ -343,6 +350,69 @@ function resetPreview() {
   pageIndicator.textContent = "- / -";
   updateControls();
   selectedIndex = -1;
+}
+
+function parseZipEntries(file) {
+  return new Promise((resolve, reject) => {
+    const zip = new window.JSZip();
+    zip.loadAsync(file)
+      .then((loadedZip) => {
+        const folders = [];
+        Object.entries(loadedZip.files).forEach(([path, entry]) => {
+          if (!entry.dir && path.includes("/")) {
+            const parts = path.split("/");
+            const folderPath = parts.slice(0, -1).join("/");
+            if (folderPath && !folders.includes(folderPath)) {
+              folders.push(folderPath);
+            }
+          }
+        });
+        resolve(folders);
+      })
+      .catch(reject);
+  });
+}
+
+function sanitizeCleanupName(name) {
+  const cleaned = sanitizeName(name || "").replace(/[_]+/g, " ").trim();
+  return cleaned || name;
+}
+
+function renderCleanupPreview(items) {
+  cleanupPreviewTable.innerHTML = "";
+  cleanupStats.innerHTML = "";
+
+  const total = items.length;
+  const pending = items.filter((item) => item.status === "Pendiente").length;
+  const conflicts = items.filter((item) => item.status === "Conflicto").length;
+  const unchanged = items.filter((item) => item.status === "Sin cambios").length;
+
+  [
+    { label: "Carpetas", value: total },
+    { label: "Pendientes", value: pending },
+    { label: "Conflictos", value: conflicts },
+    { label: "Sin cambios", value: unchanged }
+  ].forEach((stat) => {
+    const card = document.createElement("div");
+    card.className = "cleanup-stat-card";
+    card.innerHTML = `<strong>${stat.value}</strong><span>${stat.label}</span>`;
+    cleanupStats.appendChild(card);
+  });
+
+  items.forEach((item) => {
+    const row = document.createElement("tr");
+    const statusClass = item.status === "Conflicto"
+      ? "status-conflict"
+      : item.status === "Sin cambios"
+        ? "status-unchanged"
+        : "status-pending";
+    row.innerHTML = `
+      <td>${item.original}</td>
+      <td>${item.newName}</td>
+      <td class="${statusClass}">${item.status}</td>
+    `;
+    cleanupPreviewTable.appendChild(row);
+  });
 }
 
 function updateControls() {
@@ -693,6 +763,112 @@ processBtn.addEventListener("click", async () => {
     setTimeout(() => {
       hideProgress();
     }, 1600);
+  }
+});
+
+cleanupZipInput.addEventListener("change", async (event) => {
+  const [file] = event.target.files || [];
+  if (!file) {
+    return;
+  }
+
+  cleanupBadge.textContent = file.name;
+  cleanupStatusText.textContent = "Analizando ZIP...";
+  cleanupScanBtn.disabled = true;
+  cleanupApplyBtn.disabled = true;
+
+  try {
+    const folderPaths = await parseZipEntries(file);
+    const items = folderPaths.map((path) => {
+      const baseName = path.split("/").pop();
+      const newName = sanitizeCleanupName(baseName);
+      const status = newName === baseName ? "Sin cambios" : "Pendiente";
+      return { original: path, newName, status };
+    });
+
+    renderCleanupPreview(items);
+    cleanupStatusText.textContent = `Se encontraron ${items.length} rutas para revisar.`;
+  } catch (error) {
+    cleanupStatusText.textContent = error.message || "No se pudo analizar el ZIP.";
+  } finally {
+    cleanupScanBtn.disabled = false;
+    cleanupApplyBtn.disabled = false;
+  }
+});
+
+cleanupScanBtn.addEventListener("click", async () => {
+  const [file] = cleanupZipInput.files || [];
+  if (!file) {
+    return;
+  }
+
+  cleanupStatusText.textContent = "Previsualizando cambios...";
+  cleanupScanBtn.disabled = true;
+  cleanupApplyBtn.disabled = true;
+
+  try {
+    const folderPaths = await parseZipEntries(file);
+    const items = folderPaths.map((path) => {
+      const baseName = path.split("/").pop();
+      const newName = sanitizeCleanupName(baseName);
+      const status = newName === baseName ? "Sin cambios" : "Pendiente";
+      return { original: path, newName, status };
+    });
+
+    renderCleanupPreview(items);
+    cleanupStatusText.textContent = `Vista previa lista con ${items.length} cambios posibles.`;
+  } catch (error) {
+    cleanupStatusText.textContent = error.message || "No se pudo previsualizar.";
+  } finally {
+    cleanupScanBtn.disabled = false;
+    cleanupApplyBtn.disabled = false;
+  }
+});
+
+cleanupApplyBtn.addEventListener("click", async () => {
+  const [file] = cleanupZipInput.files || [];
+  if (!file) {
+    return;
+  }
+
+  cleanupStatusText.textContent = "Generando ZIP limpio...";
+  cleanupScanBtn.disabled = true;
+  cleanupApplyBtn.disabled = true;
+
+  try {
+    const sourceZip = new window.JSZip();
+    await sourceZip.loadAsync(file);
+    const outputZip = new window.JSZip();
+
+    const filesToProcess = Object.entries(sourceZip.files).filter(([, entry]) => !entry.dir);
+
+    for (const [path, entry] of filesToProcess) {
+      const parts = path.split("/");
+      const fileName = parts.pop();
+      const folder = parts.join("/");
+      const cleanedFolder = folder
+        .split("/")
+        .filter(Boolean)
+        .map((segment) => sanitizeCleanupName(segment))
+        .join("/");
+      const outputPath = cleanedFolder ? `${cleanedFolder}/${fileName}` : fileName;
+      const content = await entry.async("uint8array");
+      outputZip.file(outputPath, content);
+    }
+
+    const blob = await outputZip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `limpio-${file.name}`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    cleanupStatusText.textContent = "ZIP limpio descargado.";
+  } catch (error) {
+    cleanupStatusText.textContent = error.message || "No se pudo crear el ZIP limpio.";
+  } finally {
+    cleanupScanBtn.disabled = false;
+    cleanupApplyBtn.disabled = false;
   }
 });
 
