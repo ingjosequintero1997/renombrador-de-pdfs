@@ -857,7 +857,7 @@ cleanupApplyBtn.addEventListener("click", async () => {
     document.body.appendChild(link);
     link.click();
     link.remove();
-    cleanupStatusText.textContent = "Limpieza lista. Se descargó el ZIP resultante.";
+    cleanupStatusText.textContent = "Listo.";
   } catch (error) {
     cleanupStatusText.textContent = error.message || "No se pudo crear la copia limpia.";
   } finally {
